@@ -73,6 +73,7 @@ endif()
 add_executable(${PROJECT_NAME}
     src/main.c
     src/recomp_manual.c
+    # src/fibers.c -- Fatal Frame XAPI analysis pending
     $<TARGET_OBJECTS:ffr_gen>
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE xboxrecomp)

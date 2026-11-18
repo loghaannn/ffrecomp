@@ -1,54 +1,102 @@
 # FATAL FRAME Recompiled
 
-A native Windows (and, later, Linux) static recompilation of *FATAL FRAME* (Xbox, NTSC-U, title ID `54430004`), made with [xboxrecomp](https://github.com/sp00nznet/xboxrecomp). The game's x86 code is lifted to C and compiled for the host. Nothing is emulated at the CPU instruction level, although Xbox hardware and kernel services still require emulation. You need your own disc image; no game data is included in this repository.
+A native Linux (and, later, Windows) static recompilation of *FATAL FRAME* (Xbox, NTSC-U, title ID `54430004`), made with [xboxrecomp](https://github.com/sp00nznet/xboxrecomp).
 
-Development follows relevant milestones from [NGBRecomp](https://github.com/gamboozino/ngbrecomp), adapted for the original Xbox version of *FATAL FRAME*.
+The game's original x86 code is lifted to C and compiled for the host. Xbox CPU instructions are not interpreted at runtime, although Xbox kernel services and hardware still require emulation.
+
+You need your own copy of the game. No copyrighted game files are included in this repository.
+
+Development is inspired by [NGBRecomp](https://github.com/gamboozino/ngbrecomp), with its techniques and milestones adapted to *FATAL FRAME*.
+
+The current development environment is Linux (Ubuntu/WSL), with native Windows support planned.
 
 ## Status
 
 | Stage | State |
 |---|---|
-| Disc extraction and XBE parsing | done |
-| Disassembly, function identification, ABI analysis and lift to C | pipeline prepared; not yet verified end-to-end |
-| Native Windows build (MSVC, x86-64) | not yet verified |
-| Xbox kernel initialization, memory mapping and guest entry point | implemented in host source; not yet verified |
-| Direct3D initialization and rendering | not started |
-| DirectSound and audio output | not started |
-| Main loop | not reached |
-| Controller input and saves | not verified |
-| Linux build | planned |
+| Disc extraction, XBE parsing, disassembly and lift to C | Implemented; generated sources build and execute |
+| Native Linux build (Clang, CMake, Ninja) | **Working** |
+| Xbox memory mapping, kernel initialization and guest entry point | **Working** |
+| Xbox filesystem and game resource loading | Working for tested startup resources |
+| Direct3D initialization | Reaches NV2A initialization and registers the GPU interrupt handler |
+| NV2A renderer (Vulkan) | Initializes and opens a window; output remains black |
+| DirectSound/APU | Emulated APU initializes; in-game audio not yet verified |
+| Main loop | Not confirmed; boot thread observed waiting on a D3D event |
+| Controller input and saves | Not verified |
+| XAPI fibers | Not implemented; usage in *FATAL FRAME* not established |
+| Native Windows build | Not yet verified |
 
-An earlier experimental implementation successfully built on Windows, initialized the Xbox runtime and reached the game's entry point. Its findings and fixes will be brought into this repository as needed.
+The recompiled executable successfully starts the original Xbox game code, initializes the emulated Xbox runtime, and loads multiple resources from the extracted disc, including fonts, message data and textures.
 
-## Build and run (Windows)
+The current build opens a Vulkan window but does not yet display the game's title screen or enter confirmed gameplay. The guest boot thread has been observed waiting inside the recompiled Direct3D routine `sub_000E6ED0`.
 
-The Windows build is still being brought up. The current Bash pipeline generates C sources using xboxrecomp and requires a compatible Bash environment with Python 3 and Capstone.
+The game registers a GPU interrupt handler at `0x000EFD50`. Investigation of interrupt dispatch and VBlank signaling is ongoing.
+
+## Build and run (Linux)
+
+The project currently builds using Clang, CMake and Ninja on Linux.
+
+The xboxrecomp toolkit is expected at `../xboxrecomp` relative to the project directory.
 
 ```sh
-# Extract the disc if needed and generate the recompiled C sources
-bash tools/pipeline.sh "disc/Fatal Frame (USA).iso"
+# Once: extract your disc and generate the C (about 2 minutes)
+mkdir -p disc && cp "/path/to/Fatal Frame (USA).iso" "disc/Fatal Frame (USA).iso"      # or pass the path
+tools/pipeline.sh "disc/Fatal Frame (USA).iso"
+
+cmake -S . -B build/linux -G Ninja -DCMAKE_C_COMPILER=clang
+ninja -C build/linux
+build/linux/FatalFrame game_files
 ```
 
-The project is intended to build as a native Windows executable named `FatalFrame.exe` using CMake and MSVC. A complete build procedure will be documented once verified.
+The executable accepts the game directory as its first argument, then checks `FFR_GAME_DIR`, followed by a `game/` directory beside the executable.
 
-The game directory is the first argument, then `FFR_GAME_DIR`, then `game/` next to the executable. Saves currently default to `%LOCALAPPDATA%\FatalFrame` on Windows (`FFR_SAVE_DIR` overrides).
+The extracted game directory must contain `default.xbe` and the game's original assets.
+
+Save data defaults to `~/.local/share/FatalFrame` on Linux. Set `FFR_SAVE_DIR` to override this location.
+
+### Windows
+
+The intended Windows executable is `FatalFrame.exe`.
+
+A native Windows build and installation workflow are planned but have not yet been verified. The current Linux implementation should not be considered a finished Windows release.
 
 ## Bring-up tools
 
-- `RECOMP_WATCHDOG_SECS=N` enables the runtime watchdog for detecting stalled guest execution.
-- `tools/feedback.sh [secs]` is intended to collect indirect-branch targets, feed them back into function detection and regenerate the code. It requires an instrumented build and is not yet verified for Windows.
-- `XBOX_LOG_LEVEL=4` and `RECOMP_KERNEL_LOG_BUDGET=100000` enable detailed kernel and file-access diagnostics where supported.
-- On Linux, `kill -USR1 <pid>` is intended to print the guest thread's host backtrace and registers. This functionality has not yet been tested.
+- `kill -USR1 <pid>` samples the guest boot thread, printing its host backtrace and guest registers. This is useful for identifying stalls in lifted functions.
+- `RECOMP_WATCHDOG_SECS=N` enables the runtime watchdog for detecting stalled execution.
+- `tools/feedback.sh [secs]` supports collecting indirect-call targets and feeding them back into the recompilation pipeline. Availability depends on the build and instrumentation.
+- `XBOX_LOG_LEVEL=4` and `RECOMP_KERNEL_LOG_BUDGET=100000` enable additional kernel and filesystem diagnostics where supported.
+- `RECOMP_VBLANK=1` enables the experimental VBlank interrupt timer.
+- `FFR_RENDERER=none` selects the no-GPU bring-up path for investigating guest execution independently of Vulkan rendering.
 
-NGBRecomp-specific pushbuffer fence and DSP mailbox workarounds have been left disabled until Fatal Frame's actual hardware behavior can be established.
+Some runtime settings compensate for Xbox hardware behavior that is not yet fully implemented. These are development aids rather than permanent solutions.
 
-## Roadmap
+The DSP mailbox acknowledgment override (`RECOMP_DSP_ACK`) remains disabled until *FATAL FRAME*'s actual requirements and mailbox address are verified.
 
-1. **Native Windows bring-up.** Complete the recompilation pipeline, compile `FatalFrame.exe`, initialize the Xbox kernel and reach the game's main loop.
-2. **Graphics.** Get Fatal Frame's Xbox D3D8 code rendering correctly. Start with xboxrecomp's existing D3D11 backend while evaluating NGBRecomp's NV2A/Vulkan approach if needed.
-3. **Audio and input.** Bring up DirectSound/APU audio output and Xbox controller support.
-4. **Gameplay stability.** Fix guest execution, kernel compatibility, filesystem, saving and synchronization issues until the original game runs reliably.
-5. **Installation and performance.** Provide a portable executable that installs from the user's original disc image, improve runtime performance and eliminate unnecessary compatibility workarounds.
-6. **Linux support.** Investigate native Linux builds after the Windows implementation is functional.
+The experimental `src/fibers.c` is not part of the active implementation. It contains NGBRecomp-derived code that has not been adapted or validated for *FATAL FRAME*.
 
-The priority is a faithful, stable, playable version of the original game. Cheats, alternative controller prompts, recomp-specific settings and additional content are not currently planned.
+## Current development priorities
+
+1. **GPU interrupts and synchronization.** Investigate the Direct3D interrupt handler at `0x000EFD50`, its generated function entry and VBlank delivery. Determine why the boot thread remains blocked in a Direct3D event wait.
+
+2. **Main-loop execution.** Advance through the remaining startup routines, identify missing indirect-call targets and verify that the game's main loop runs and submits GPU commands.
+
+3. **Graphics.** Continue developing the NV2A/Vulkan renderer, including pushbuffer execution, texture handling, synchronization and correct frame presentation.
+
+4. **Audio and input.** Validate DirectSound initialization, APU playback and controller input once the game reaches the appropriate initialization paths.
+
+5. **Gameplay and stability.** Resolve remaining kernel, filesystem, threading, memory and timing issues until the title screen, menus and gameplay function reliably.
+
+6. **Native Windows support.** Build and test `FatalFrame.exe`, sharing as much of the runtime as possible between Linux and Windows.
+
+7. **Installation and performance.** Implement first-launch disc validation and extraction, improve compatibility and optimize the recompiled executable.
+
+## Project goals
+
+The long-term goal is a faithful, stable and playable native PC version of the original Xbox release of *FATAL FRAME*.
+
+The planned distribution will use a portable executable that installs the necessary game files from the user's own original disc image.
+
+The project does not distribute game assets and is not affiliated with or endorsed by Koei Tecmo.
+
+Additional features such as cheats, alternative controller prompts and expanded configuration options are not current development priorities.
