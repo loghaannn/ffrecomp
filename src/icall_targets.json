@@ -270,6 +270,10 @@
   "source": "icall-feedback"
  },
  {
+  "start": "0x000EFD50",
+  "source": "KeConnectInterrupt vector 3"
+ },
+ {
   "start": "0x00102792",
   "flags": 1,
   "seen": "resolved",

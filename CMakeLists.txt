@@ -31,6 +31,10 @@ set(XBOXRECOMP_NV2A_VK ${FFR_NV2A_VK} CACHE BOOL "" FORCE)
 
 set(XBOXRECOMP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../xboxrecomp" CACHE PATH
     "Path to the xboxrecomp toolkit root directory")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND FFR_NV2A_VK)
+    # Import the optimizer target so static glslang also links its SPIRV-Tools core.
+    find_package(SPIRV-Tools-opt CONFIG QUIET)
+endif()
 add_subdirectory(${XBOXRECOMP_DIR} ${CMAKE_BINARY_DIR}/xboxrecomp)
 
 # ── Recompiled code ─────────────────────────────────────────────
@@ -73,7 +77,7 @@ endif()
 add_executable(${PROJECT_NAME}
     src/main.c
     src/recomp_manual.c
-    # src/fibers.c -- Fatal Frame XAPI analysis pending
+    $<$<NOT:$<PLATFORM_ID:Windows>>:${CMAKE_CURRENT_SOURCE_DIR}/src/install.c>
     $<TARGET_OBJECTS:ffr_gen>
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE xboxrecomp)
