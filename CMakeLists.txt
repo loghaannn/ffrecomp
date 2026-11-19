@@ -77,6 +77,7 @@ endif()
 add_executable(${PROJECT_NAME}
     src/main.c
     src/recomp_manual.c
+    $<$<BOOL:${FFR_NV2A_VK}>:${CMAKE_CURRENT_SOURCE_DIR}/src/launcher.c>
     $<$<NOT:$<PLATFORM_ID:Windows>>:${CMAKE_CURRENT_SOURCE_DIR}/src/install.c>
     $<TARGET_OBJECTS:ffr_gen>
 )

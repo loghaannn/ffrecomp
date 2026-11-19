@@ -15,6 +15,7 @@ The compatible xboxrecomp toolkit currently lives at `../xboxrecomp`.
 | Disc extraction, XBE parsing, disassembly and lift to C | Done, `tools/pipeline.sh` |
 | Native Linux build (Clang, CMake, Ninja) | **Working** |
 | First-launch installer and AppImage packaging | Implemented; AppImage boots |
+| Pre-launch settings screen | **Working**; settings saved between launches |
 | Xbox kernel initialization, memory mapping and guest entry point | **Working** |
 | Direct3D initialization and GPU interrupts | **Working** |
 | NV2A GPU (pushbuffer → Vulkan) | **Rendering** loading screen, logos and title screen |
@@ -26,7 +27,7 @@ The compatible xboxrecomp toolkit currently lives at `../xboxrecomp`.
 
 The game currently boots through the original Xbox startup sequence, displays the TECMO and KOEI logos, reaches the *FATAL FRAME* title screen and plays music.
 
-The NV2A/Vulkan renderer is producing visible frames. However, controller input is not yet functional, and gameplay has not been reached.
+The NV2A/Vulkan renderer is producing visible frames. However, in-game controller input is not yet functional, and gameplay has not been reached.
 
 ## Build and run (Linux)
 
@@ -43,6 +44,12 @@ build/linux/FatalFrame game_files
 The game directory is the first argument, then `FFR_GAME_DIR`, then `game/` next to the executable.
 
 Hard-disk images and saves default to `~/.local/share/FatalFrame`; `FFR_SAVE_DIR` overrides this location.
+
+A settings screen appears before the game starts, supporting keyboard, mouse and controller navigation. It provides window size, windowed/fullscreen mode, render resolution (1×–4×), V-Sync, skipping the startup logos, and whether to show the settings screen at startup. The game preserves its original 4:3 aspect ratio.
+
+Settings are saved to `~/.config/FatalFrame/settings.ini` (or under `XDG_CONFIG_HOME`). Run with `--settings` to reopen the screen if it has been disabled. In-game, F11 or Alt+Enter toggles fullscreen.
+
+Environment variables override saved settings for testing: `FFR_FULLSCREEN=0|1`, `FFR_VSYNC=0|1`, `NV2A_SCALE=n`, and `FFR_NO_SETTINGS=1` to bypass the settings screen.
 
 ### AppImage
 

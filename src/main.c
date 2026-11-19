@@ -42,6 +42,21 @@
 #include "recomp_icall_feedback.h"
 #include "usb/ohci.h"
 extern void xbox_InputInit(void);
+#if defined(FFR_NV2A_VK)
+#include "launcher.h"
+
+static bool s_skip_intro;
+
+/* Retail US sub_00027B10 reads this jump table from guest RAM. State 4
+ * finishes the black background setup after logo.xp2 loads. State 5
+ * starts the logo fade; state 8 returns success to the startup controller. */
+static void skip_startup_logo(uint8_t *guest)
+{
+    uint32_t *states = (uint32_t *)(guest + 0x00027DB4);
+    if (states[5] == 0x00027C58 && states[8] == 0x00027D1D)
+        states[5] = states[8];
+}
+#endif
 #if !defined(_WIN32)
 #include "install.h"
 #endif
@@ -65,6 +80,7 @@ extern ptrdiff_t g_xbox_mem_offset;
 
 /* Renderer choice (choose_renderer): the GPU model, and whether it has a window. */
 static bool s_use_gpu, s_headless;
+static int s_show_settings;
 #define FFR_D3D_DEVICE_PTR 0x000F9B80u   /* D3D8 global device pointer */
 
 extern void xbe_entry_point(void);
@@ -605,6 +621,8 @@ static void *guest_main(void *unused)
            (unsigned long long)g_xbox_mem_offset);
 
 #if defined(FFR_NV2A_VK)
+    if (s_skip_intro)
+        skip_startup_logo((uint8_t *)(uintptr_t)g_xbox_mem_offset);
     if (s_use_gpu) {
         Nv2aVkOptions o = { .headless = s_headless };
         if (xbox_Nv2aVkStart(&o) != 0) {
@@ -667,6 +685,14 @@ static void *guest_main(void *unused)
 
 int main(int argc, char **argv)
 {
+    /* --settings: show the settings screen even if it is turned off. */
+    for (int i = 1; i < argc; i++)
+        if (!strcmp(argv[i], "--settings")) {
+            s_show_settings = 1;
+            memmove(&argv[i], &argv[i + 1], (size_t)(argc - i) * sizeof *argv);
+            argc--;
+            i--;
+        }
 #if defined(_WIN32)
     const char *dir = argc > 1 ? argv[1] : getenv("FFR_GAME_DIR");
 #endif
@@ -727,10 +753,36 @@ int main(int argc, char **argv)
 #endif
 
 #if defined(FFR_NV2A_VK)
+    /* The settings screen, then the settings. Environment variables of the
+     * same meaning still win, for testing. */
+    FfrSettings cfg;
+    ffr_settings_load(&cfg);
+    if (s_use_gpu && !s_headless && (cfg.show_launcher || s_show_settings) &&
+        !getenv("FFR_NO_SETTINGS")) {
+        if (!ffr_launcher_run(&cfg))
+            return 0;
+    }
+    {
+        const char *e;
+        if ((e = getenv("FFR_FULLSCREEN")))
+            cfg.fullscreen = *e != '0';
+        if ((e = getenv("FFR_VSYNC")))
+            cfg.vsync = *e != '0';
+        if (!getenv("NV2A_SCALE") && cfg.scale > 1) {
+            char v[8];
+            snprintf(v, sizeof v, "%d", cfg.scale);
+            setenv("NV2A_SCALE", v, 1);
+        }
+        s_skip_intro = cfg.skip_intro;
+    }
+#endif
+    /* FATAL FRAME uses its original 4:3 presentation on Xbox. */
+    xbox_XcVideoFlags &= ~XC_VIDEO_FLAGS_WIDESCREEN;
+#if defined(FFR_NV2A_VK)
     if (s_use_gpu && !s_headless &&
-        nv2a_window_create("FATAL FRAME", 1280, 960,
-                           getenv("FFR_FULLSCREEN") != NULL,
-                           4.0 / 3.0, getenv("FFR_VSYNC") != NULL) != 0) {
+        nv2a_window_create("FATAL FRAME", cfg.width, cfg.height,
+                           cfg.fullscreen, 4.0 / 3.0,
+                           cfg.vsync) != 0) {
         fprintf(stderr, "Cannot open the game window.\n");
         return 1;
     }
