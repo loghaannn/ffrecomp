@@ -6,6 +6,10 @@
   "source": "icall-feedback"
  },
  {
+  "start": "0x000D5DD0",
+  "source": "callback passed at 0x000D77E5"
+ },
+ {
   "start": "0x000D7FC0",
   "flags": 1,
   "seen": "resolved",
@@ -88,6 +92,14 @@
   "flags": 1,
   "seen": "resolved",
   "source": "icall-feedback"
+ },
+ {
+  "start": "0x000E6B60",
+  "source": "callback registered at 0x000E6AEA"
+ },
+ {
+  "start": "0x000E6B70",
+  "source": "callback registered at 0x000E6B0A"
  },
  {
   "start": "0x000E8040",
