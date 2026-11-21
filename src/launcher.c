@@ -232,7 +232,7 @@ static void row_text(const FfrSettings *s, int row, const char **label, char *va
     case ROW_DISPLAY: *label = "Display";       snprintf(val, n, "%s", s->fullscreen ? "Fullscreen" : "Windowed"); break;
     case ROW_SCALE:   *label = "Render resolution"; snprintf(val, n, "%s", SCALE_LABEL[s->scale - 1]); break;
     case ROW_VSYNC:   *label = "V-Sync";        snprintf(val, n, "%s", s->vsync ? "On" : "Off"); break;
-    case ROW_SKIP:    *label = "Skip startup logos"; snprintf(val, n, "%s", s->skip_intro ? "Yes" : "No"); break;
+    case ROW_SKIP:    *label = "Skip intro logo"; snprintf(val, n, "%s", s->skip_intro ? "Yes" : "No"); break;
     case ROW_SHOW:    *label = "Show this screen at startup"; snprintf(val, n, "%s", s->show_launcher ? "Yes" : "No"); break;
     case ROW_START:   *label = "Start game"; break;
     case ROW_QUIT:    *label = "Quit"; break;

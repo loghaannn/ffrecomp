@@ -50,7 +50,7 @@ static bool s_skip_intro;
 /* Retail US sub_00027B10 reads this jump table from guest RAM. State 4
  * finishes the black background setup after logo.xp2 loads. State 5
  * starts the logo fade; state 8 returns success to the startup controller. */
-static void skip_startup_logo(uint8_t *guest)
+static void skip_intro_logo(uint8_t *guest)
 {
     uint32_t *states = (uint32_t *)(guest + 0x00027DB4);
     if (states[5] == 0x00027C58 && states[8] == 0x00027D1D)
@@ -528,12 +528,9 @@ static bool load_file(const char *path, void **out_data, size_t *out_size)
  *                      interrupt at 60 Hz.
  *   RECOMP_AC97_READY  DirectSound programs the APU directly; trap its
  *                      registers into the emulated APU.
- *   RECOMP_DSP_ACK     DirectSound's effects-image download posts command 3 to
- *                      the GP DSP mailbox and spins until the DSP clears it
- *                      (sub_0037DAAE). The DSP is not emulated, so complete it
- *                      at once. The mailbox is +0x810 into a contiguous block
- *                      whose address is deterministic for this build (it moves if the
- *                      contiguous allocator does: XBOX_CONTIG_ALLOC_BASE). */
+ *   RECOMP_DSP_ACK     Retail US DirectSound sub_001032FF waits for the GP
+ *                      to clear the effects command at block base + 0x810.
+ *                      Recheck the address if contiguous allocation changes. */
 static void set_default(const char *name, const char *value)
 {
     if (getenv(name))
@@ -567,7 +564,7 @@ static void bringup_defaults(void)
         set_default("RECOMP_VBLANK", "1");
     set_default("RECOMP_AC97_READY", "1");
     set_default("RECOMP_USB", "1");
-    // NGB: set_default("RECOMP_DSP_ACK", "0x86BF8810"); /* contiguous memory starts at 64 MB */
+    set_default("RECOMP_DSP_ACK", "0x85D78810");
 }
 
 #if defined(RECOMP_ICALL_FEEDBACK)
@@ -622,7 +619,7 @@ static void *guest_main(void *unused)
 
 #if defined(FFR_NV2A_VK)
     if (s_skip_intro)
-        skip_startup_logo((uint8_t *)(uintptr_t)g_xbox_mem_offset);
+        skip_intro_logo((uint8_t *)(uintptr_t)g_xbox_mem_offset);
     if (s_use_gpu) {
         Nv2aVkOptions o = { .headless = s_headless };
         if (xbox_Nv2aVkStart(&o) != 0) {
