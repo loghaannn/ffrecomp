@@ -1,0 +1,67 @@
+/* FATAL FRAME NTSC-U, D3D section. Exclusive ends, callee-popped DWORDs.
+ * Descriptive names denote observed behavior, not recovered XDK symbols.
+ * Included as an X-macro by the host; take_d3d.py verifies the boundaries. */
+FFR_ENTRY(000E6FD0, 000E702C, SurfacePitch, 1)
+/* Source surface, source rects, count, destination surface, destination points. */
+FFR_ENTRY(000E71B0, 000E7477, CopyRects, 5)
+/* Device + 0xB38 and +0xB48 hold four texture/palette bindings.
+ * The original routines update internal references on bind and unbind. */
+FFR_ENTRY(000E78F0, 000E7A6A, SetTexture, 2)
+FFR_ENTRY(000E7A70, 000E7AFD, SetPalette, 2)
+/* Resource data at +4 goes to F9B88, device +38C/+1C hold IB/base. */
+FFR_ENTRY(000E7B00, 000E7B84, SetIndices, 2)
+/* CreateDevice uses behavior flags, presentation parameters and output at args 4..6.
+ * Initializes F9B80 via EE900 and clears the binding on failure. */
+FFR_ENTRY(000E8070, 000E8114, CreateDevice, 6)
+/* ECX = encoded method, EDX = value; retries after MakeSpace. */
+FFR_ENTRY(000E8150, 000E8177, SetSimpleRenderState, 0)
+FFR_ENTRY(000E8490, 000E84C5, SetShadowCompare, 1)
+FFR_ENTRY(000E84D0, 000E851D, SetFogColor, 1)
+FFR_ENTRY(000E8520, 000E8588, CullMode, 1)
+FFR_ENTRY(000E8590, 000E85CA, FrontFace, 1)
+FFR_ENTRY(000E85D0, 000E8609, NormalizeEnable, 1)
+FFR_ENTRY(000E87E0, 000E8832, SetLogicOp, 1)
+FFR_ENTRY(000E8960, 000E89A1, SetVertexBlend, 1)
+FFR_ENTRY(000E8B30, 000E8B6D, SetTextureBorderColor, 2)
+FFR_ENTRY(000E8B70, 000E8BA9, SetTextureColorKey, 2)
+FFR_ENTRY(000E9010, 000E955A, ConfigureRenderTargets, 3)
+/* ApplyDisplayMode receives the device in EDI. */
+FFR_ENTRY(000E9AA0, 000E9BA9, ApplyDisplayMode, 0)
+/* Count, rectangles, flags, packed color, depth float bits, stencil. */
+FFR_ENTRY(000EA6C0, 000EAA5C, Clear, 6)
+FFR_ENTRY(000EAB40, 000EAC9F, InlinePrimitiveSubmission, 4)
+/* Primitive, first vertex, vertex count; BEGIN_END and DRAW_ARRAYS. */
+FFR_ENTRY(000EADE0, 000EAE7F, DrawVertices, 3)
+/* Primitive, index count, guest pointer to packed 16-bit indices. */
+FFR_ENTRY(000EAE80, 000EB0E7, DrawIndexedVertices, 3)
+FFR_ENTRY(000EB190, 000EB1C5, BeginPrimitive, 1)
+FFR_ENTRY(000EB1D0, 000EB20D, EndPrimitive, 0)
+/* Declaration, program, output handle, usage. Guest allocates and tags the object. */
+FFR_ENTRY(000EB710, 000EB84E, CreateVertexShader, 4)
+/* ECX = hardware constant index, EDX = 16-byte source; updates FIFO and F7B98 mirror. */
+FFR_ENTRY(000EB850, 000EB8AF, SetVertexConstant1, 0)
+FFR_ENTRY(000EB8B0, 000EB952, SetVertexConstant4, 0)
+/* ECX = constant index, EDX = source, stack word = DWORD count. */
+FFR_ENTRY(000EB960, 000EBA30, SetVertexConstantWords, 1)
+/* Stream, buffer header, stride. Twelve-byte guest records at FA028. */
+FFR_ENTRY(000EBA80, 000EBB0C, SetStreamSource, 3)
+FFR_ENTRY(000EBB10, 000EBB65, LoadTransformProgram, 2)
+/* Optional tagged shader, instruction start. Programs method 1EA0 and device +388. */
+FFR_ENTRY(000EBB70, 000EBBF0, SelectVertexShader, 2)
+FFR_ENTRY(000EBE50, 000EBFA2, SetVertexShader, 1)
+/* Create copies 60 DWORDs to the 0xFC-byte object, with definition pointer at +8.
+ * Delete decrements its reference count. Bind sets device +370 and programs combiners. */
+FFR_ENTRY(000EC140, 000EC185, CreatePixelShader, 2)
+FFR_ENTRY(000EC190, 000EC1AB, DeletePixelShader, 1)
+FFR_ENTRY(000EC1B0, 000EC3A3, SetPixelShader, 1)
+FFR_ENTRY(000EC3B0, 000EC637, SetPixelShaderConstants, 3)
+FFR_ENTRY(000EC810, 000EC842, InternalAddRef, 1)
+FFR_ENTRY(000EC9A0, 000ECA02, InternalRelease, 1)
+FFR_ENTRY(000ECB80, 000ECCF2, UpdateOverlay, 5)
+FFR_ENTRY(000ECD00, 000ECD63, StopAndResetOverlay, 1)
+/* ProgramScanoutStart also receives the display context in ECX. */
+FFR_ENTRY(000ECD70, 000ECDF2, ProgramScanoutStart, 1)
+FFR_ENTRY(000EDC10, 000EDD46, WaitForFence, 2)
+/* Resource, face, mip, locked rectangle out, input rectangle, flags. */
+FFR_ENTRY(000EF7A0, 000EF83B, Lock2DSurface, 6)
+FFR_ENTRY(000EFD50, 000EFE67, GpuInterrupt, 2)
